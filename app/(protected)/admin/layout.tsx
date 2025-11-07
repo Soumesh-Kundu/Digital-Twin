@@ -1,0 +1,12 @@
+import Sidebar from "@/components/Admin/Sidebar";
+
+export default function layout({children}: {children: React.ReactNode}) {
+  return (
+    <main className="flex w-screen flex-1 overflow-hidden">
+        <Sidebar />
+        <div className="flex-1 p-4 flex flex-col overflow-hidden">
+        {children}
+        </div>
+    </main>
+  )
+}

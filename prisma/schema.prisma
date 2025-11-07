@@ -1,0 +1,57 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+enum Role {
+  ADMIN
+  ENGINEER
+  MAINTENANCE
+}
+
+enum MachinesStatus {
+  ACTIVE
+  IDLE
+  MAINTENANCE
+}
+
+enum MACHINE_TYPE {
+  CNC
+  HYDRAULIC
+  FURNACE
+  ROBOTIC_ARM
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DB_URL")
+  shadowDatabaseUrl = env("SHADOW_DB_URL")
+}
+
+model User{
+  id       String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  password  String
+  role      Role     @default(MAINTENANCE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Machines{
+  id        String   @id @default(cuid())
+  name      String
+  model_name String
+  status    MachinesStatus @default(ACTIVE)
+  type      MACHINE_TYPE
+  temperature_max Float
+  vibration_max Float
+  power_max Float
+  thresholds Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
