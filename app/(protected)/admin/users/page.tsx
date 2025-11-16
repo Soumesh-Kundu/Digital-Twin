@@ -1,27 +1,26 @@
 import AdminUserList from "@/components/Admin/UserList";
-import { db } from "@/lib/server/db"
+import { serverFetch } from "@/lib/customFetch/serverFetch";
 
-async function getUsers(){
-    const users=db.user.findMany({
-        where:{
-            role: { not:"ADMIN"}
-        },
-        select:{
-            id:true,
-            name:true,
-            email:true,
-            role:true,
-        },
-        orderBy:{
-            createdAt:"desc"
-        }
-    })
+const dynamic = 'force-dynamic';
+
+async function getUsers() {
+  try {
+    const res = await serverFetch("/users",{
+        cache: 'no-store'
+    });
+    if (!res.ok) {
+      throw new Error("Failed to fetch users");
+    }
+    const users = await res.json();
+    console.log("Fetched users:", users);
     return users;
+  } catch (error) {
+    console.log("Error fetching users:", error);
+    return [];
+  }
 }
 
 export default async function page() {
-    const usersPromise= getUsers();
-  return (
-    <AdminUserList users={usersPromise} />
-  )
+  const usersPromise = getUsers();
+  return <AdminUserList users={usersPromise} />;
 }

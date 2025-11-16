@@ -29,6 +29,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { MACHINE_TYPE, MachinesStatus } from "@prisma/client";
 import { useMachineModalStore } from "@/stores/machineModal";
+import { Fetch } from "@/lib/customFetch/Fetch";
 const createUserSchema = (modalType: "add" | "edit") =>
   z.object({
     name: z
@@ -42,59 +43,28 @@ const createUserSchema = (modalType: "add" | "edit") =>
       })
       .max(100, "Model name must be at most 100 characters"),
     type: z.enum(MACHINE_TYPE, { error: "Type is required" }),
-    powerMax: z.number({ error: "Power Max must be a number" }),
-    temperature: z
-      .number({ error: "Temperature  must be a number" })
-      .min(0, "Temperature  must be at least 0"),
-    vibration: z
-      .number({ error: "Vibration  must be a number" })
-      .min(0, "Vibration  must be at least 0"),
+    powerMax: z.coerce.number().min(0, "Power Max must be at least 0"),
+    temperature: z.coerce.number().min(0, "Temperature must be at least 0"),
+    vibration: z.coerce.number().min(0, "Vibration must be at least 0"),
     status: z.enum(MachinesStatus, { error: "Status is required" }),
-    rpmMax: z
-      .number({ error: "RPM Max must be a number" })
-      .min(0, "RPM Max must be at least 0")
-      .optional(),
-    torqueMax: z
-      .number({ error: "Torque Max must be a number" })
-      .min(0, "Torque Max must be at least 0")
-      .optional(),
-    oiLPressureMax: z
-      .number({ error: "Oil Pressure Max must be a number" })
-      .min(0, "Oil Pressure Max must be at least 0")
-      .optional(),
-    oilLevelMax: z
-      .number({ error: "Oil Level Max must be a number" })
-      .min(0, "Oil Level Max must be at least 0")
-      .optional(),
-    motorCurrentMax: z
-      .number({ error: "Motor Current Max must be a number" })
-      .min(0, "Motor Current Max must be at least 0")
-      .optional(),
-    fuelFlowMax: z
-      .number({ error: "Fuel Flow Max must be a number" })
-      .min(0, "Fuel Flow Max must be at least 0")
-      .optional(),
-    pressureMax: z
-      .number({ error: "Fuel Pressure Max must be a number" })
-      .min(0, "Fuel Pressure Max must be at least 0")
-      .optional(),
-    exhaustTemperatureMax: z
-      .number({ error: "Exhaust Temperature Max must be a number" })
-      .min(0, "Exhaust Temperature Max must be at least 0")
-      .optional(),
-    joinTorqueMax: z
-      .number({ error: "Joint Torque Max must be a number" })
-      .min(0, "Joint Torque Max must be at least 0")
-      .optional(),
-    currentMax: z
-      .number({ error: "Joint Temperature Max must be a number" })
-      .min(0, "Joint Temperature Max must be at least 0")
-      .optional(),
-    cyclCountMax: z
-      .number({ error: "Cycle Count Max must be a number" })
-      .min(0, "Cycle Count Max must be at least 0")
-      .optional(),
+    rpmMax: z.coerce.number().min(0, "RPM Max must be at least 0").optional(),
+    torqueMax: z.coerce.number().min(0, "Torque Max must be at least 0").optional(),
+    oiLPressureMax: z.coerce.number().min(0, "Oil Pressure Max must be at least 0").optional(),
+    oilLevelMax: z.coerce.number().min(0, "Oil Level Max must be at least 0").optional(),
+    motorCurrentMax: z.coerce.number().min(0, "Motor Current Max must be at least 0").optional(),
+    fuelFlowMax: z.coerce.number().min(0, "Fuel Flow Max must be at least 0").optional(),
+    pressureMax: z.coerce.number().min(0, "Fuel Pressure Max must be at least 0").optional(),
+    exhaustTemperatureMax: z.coerce.number().min(0, "Exhaust Temperature Max must be at least 0").optional(),
+    joinTorqueMax: z.coerce.number().min(0, "Joint Torque Max must be at least 0").optional(),
+    currentMax: z.coerce.number().min(0, "Joint Temperature Max must be at least 0").optional(),
+    cyclCountMax: z.coerce.number().min(0, "Cycle Count Max must be at least 0").optional(),
+    flowRateMax: z.coerce.number().min(0, "Flow Rate Max must be at least 0").optional(),
+    oilTemperatureMax: z.coerce.number().min(0, "Oil Temperature Max must be at least 0").optional(),
+    jointTorqueMax: z.coerce.number().min(0, "Joint Torque Max must be at least 0").optional(),
+    cycleCountMax: z.coerce.number().min(0, "Cycle Count Max must be at least 0").optional(),
   });
+
+type MachineFormData = z.infer<typeof createUserSchema>;
 
 const stringToEnumMap = {
   CNC: MACHINE_TYPE.CNC,
@@ -109,7 +79,7 @@ const statusStringToEnumMap = {
 };
 
 const enumToParamsMap = {
-  [MACHINE_TYPE.CNC]: ["powerMax", "rpmMax", "torqueMax"],
+  [MACHINE_TYPE.CNC]: ["rpmMax", "torqueMax"],
   [MACHINE_TYPE.HYDRAULIC]: [
     "pressureMax",
     "flowRateMax",
@@ -140,59 +110,135 @@ export default function MachineModal() {
   const userSchema = createUserSchema(modalType);
   const form = useForm({
     resolver: zodResolver(userSchema),
+    defaultValues: {
+      name: modalType === "edit" ? useMachineModalStore.getState().data.name : "",
+      modelName: modalType === "edit" ? useMachineModalStore.getState().data.model_name : "",
+      type: modalType === "edit" ? useMachineModalStore.getState().data.type : undefined,
+      status: modalType === "edit" ? useMachineModalStore.getState().data.status : undefined,
+      powerMax: modalType === "edit" ? useMachineModalStore.getState().data.power_max || 0 : 0,
+      temperature: modalType === "edit" ? useMachineModalStore.getState().data.temperature_max : 0,
+      vibration: modalType === "edit" ? useMachineModalStore.getState().data.vibration_max : 0,
+    },
   });
 
   useEffect(() => {
     console.log("Modal Type Changed:", modalType);
     setIsPasswordLock(modalType === "edit");
-    form.reset();
+    const machineData = useMachineModalStore.getState().data;
+    
+    if (modalType === "edit") {
+      setType(machineData.type);
+      form.reset({
+        name: machineData.name,
+        modelName: machineData.model_name,
+        type: machineData.type,
+        status: machineData.status,
+        powerMax: machineData.power_max || 0,
+        temperature: machineData.temperature_max,
+        vibration: machineData.vibration_max,
+        // Populate threshold values if they exist
+        ...(typeof machineData.thresholds === 'object' && machineData.thresholds !== null 
+          ? machineData.thresholds as Record<string, number>
+          : {})
+      });
+    } else {
+      setType(undefined);
+      form.reset({
+        name: "",
+        modelName: "",
+        type: undefined,
+        status: undefined,
+        powerMax: 0,
+        temperature: 0,
+        vibration: 0,
+      });
+    }
   }, [modalType]);
 
   async function handleSubmit() {
     if (isLoading) return;
     setIsLoading(true);
     if (modalType === "add") {
-      await createUser();
+      await createMachine();
     } else {
-      await updateUser();
+      await updateMachine();
     }
     setIsLoading(false);
   }
 
-  async function createUser() {
+  async function createMachine() {
     try {
-      const userData = form.getValues();
-      const res = await fetch(`/api/users/create`, {
+      const machineData = form.getValues();
+      const data={
+        name: machineData.name,
+        model_name: machineData.modelName,
+        type: machineData.type,
+        status: machineData.status,
+        power_max: Number(machineData.powerMax),
+        temperature_max: Number(machineData.temperature),
+        vibration_max: Number(machineData.vibration),
+        thresholds: enumToParamsMap[machineData.type] 
+        ?.reduce((acc, param) => {
+          const value = machineData[param as keyof typeof machineData];
+          acc[param] = value as string;
+          return acc;
+        }, {} as Record<string, string>)
+      }
+
+      console.log("Creating machine with data:", data,machineData['rpmMax']);
+      const res = await Fetch(`/machines`, {
         method: "POST",
-        body: JSON.stringify(userData),
+        body: JSON.stringify(data),
       });
       const json = await res.json();
       if (!res.ok) {
         throw new Error(json);
       }
+      form.reset();
       reset();
-      router.refresh();
+      setTimeout(() => {
+        router.refresh();
+      }, 100);
     } catch (error) {
-      toast.error("Failed to create user. Please try again.");
+      toast.error("Failed to create machine. Please try again.");
       console.log(error);
     }
   }
 
-  async function updateUser() {
+  async function updateMachine() {
     try {
-      const userData = form.getValues();
-      const res = await fetch(`/api/users/update`, {
+      const machineData = form.getValues();
+      const data={
+        name: machineData.name,
+        model_name: machineData.modelName,
+        type: machineData.type,
+        status: machineData.status,
+        power_max: Number(machineData.powerMax),
+        temperature_max: Number(machineData.temperature),
+        vibration_max: Number(machineData.vibration),
+        thresholds: enumToParamsMap[machineData.type] 
+        ?.reduce((acc, param) => {
+          const value = machineData[param as keyof typeof machineData];
+          acc[param] = Number(value);
+          return acc;
+        }, {} as Record<string, number>)
+      }
+
+      const res = await Fetch(`/machines/${machineId}`, {
         method: "PUT",
-        body: JSON.stringify({ id: machineId, ...userData }),
+        body: JSON.stringify(data),
       });
       const json = await res.json();
       if (!res.ok) {
         throw new Error(json);
       }
+      form.reset();
       reset();
-      router.refresh();
+      setTimeout(() => {
+        router.refresh();
+      }, 100);
     } catch (error) {
-      toast.error("Failed to update user. Please try again.");
+      toast.error("Failed to update machine. Please try again.");
       console.log(error);
     }
   }
@@ -222,7 +268,10 @@ export default function MachineModal() {
                 <FormItem className="col-span-3">
                   <FormLabel>Name</FormLabel>
                   <FormControl>
-                    <Input {...form.register("name")} placeholder="Machine name" />
+                    <Input
+                      {...form.register("name")}
+                      placeholder="Machine name"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -253,6 +302,7 @@ export default function MachineModal() {
                   <FormControl>
                     <Select
                       {...form.register("type")}
+                      value={form.watch("type") || ""}
                       onValueChange={(value) => {
                         if (!value) form.resetField("type");
                         form.setValue(
@@ -265,12 +315,12 @@ export default function MachineModal() {
                       }}
                     >
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select a role" />
+                        <SelectValue placeholder="Select a type" />
                       </SelectTrigger>
                       <SelectContent>
                         {Object.values(MACHINE_TYPE).map((type) => (
                           <SelectItem key={type} value={type}>
-                            {type.charAt(0) + type.slice(1).toLowerCase()}
+                            {(type.charAt(0) + type.slice(1).toLowerCase()).replace("_", " ")}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -289,6 +339,7 @@ export default function MachineModal() {
                   <FormControl>
                     <Select
                       {...form.register("status")}
+                      value={form.watch("status") || ""}
                       onValueChange={(value) => {
                         if (!value) form.resetField("status");
                         form.setValue(
@@ -300,7 +351,7 @@ export default function MachineModal() {
                       }}
                     >
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select a role" />
+                        <SelectValue placeholder="Select a Status" />
                       </SelectTrigger>
                       <SelectContent>
                         {Object.values(MachinesStatus).map((type) => (
@@ -315,7 +366,33 @@ export default function MachineModal() {
                 </FormItem>
               )}
             />
-            {enumToParamsMap[form.getValues("type")]?.map((param) => (
+            {
+              ["powerMax", "temperature", "vibration"].map((param) => (
+                <FormField
+                  key={param}
+                  control={form.control}
+                  name={param as any}
+                  render={() => (
+                <FormItem className="">
+                  <FormLabel>
+                    {param
+                      .replace(/([A-Z])/g, " $1")
+                      .replace(/^./, (str) => str.toUpperCase())}
+                  </FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="number"
+                      {...form.register(param as any)} 
+                      placeholder={`Enter ${param}`}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+                  )}
+                />
+              ))
+            }
+            {form.getValues('type') && enumToParamsMap[form.getValues('type')]?.map((param) => (
               <FormField
                 key={param}
                 control={form.control}
@@ -334,6 +411,7 @@ export default function MachineModal() {
                         placeholder={`Enter ${param}`}
                       />
                     </FormControl>
+                    <FormMessage />
                   </FormItem>
                 )}
               />

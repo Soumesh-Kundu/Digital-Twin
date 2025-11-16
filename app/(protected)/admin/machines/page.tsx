@@ -1,26 +1,20 @@
 import AdminMachineList from "@/components/Admin/MachineList";
-import { db } from "@/lib/server/db"
+import { serverFetch } from "@/lib/customFetch/serverFetch";
 
 async function getMachines(){
-    const machines=await db.machines.findMany({
-        select:{
-            id:true,
-            name:true,
-            model_name:true,
-            type:true,
-            power_max:true,
-            status:true,
-            temperature_max:true,
-            vibration_max:true,
-            thresholds:true,
-            createdAt:true,
-            updatedAt:true,
-        },
-        orderBy:{
-            createdAt:"desc"
-        }
-    })
+  try {
+    const res=await serverFetch("/machines",{
+        cache: 'no-store'
+    });
+    if(!res.ok){
+      throw new Error("Failed to fetch machines");
+    }
+    const machines = await res.json();
     return machines;
+  } catch (error) {
+    console.log("Error fetching machines:", error);
+    return [];
+  }
 }
 
 

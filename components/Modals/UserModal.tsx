@@ -28,6 +28,7 @@ import "ldrs/react/Ring.css";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { Role } from "@prisma/client";
+import { Fetch } from "@/lib/customFetch/Fetch";
 const createUserSchema = (modalType: "add" | "edit") =>
   z.object({
     name: z
@@ -102,7 +103,7 @@ export default function UserModal() {
   async function createUser() {
     try {
       const userData = form.getValues();
-      const res = await fetch(`/api/users/create`, {
+      const res = await Fetch(`/users`, {
         method: "POST",
         body: JSON.stringify(userData),
       });
@@ -110,8 +111,12 @@ export default function UserModal() {
       if (!res.ok) {
         throw new Error(json);
       }
+      form.reset();
       reset();
-      router.refresh();
+      // Small delay to prevent modal flicker
+      setTimeout(() => {
+        router.refresh();
+      }, 100);
     } catch (error) {
       toast.error("Failed to create user. Please try again.");
       console.log(error);
@@ -121,16 +126,20 @@ export default function UserModal() {
   async function updateUser() {
     try {
       const userData = form.getValues();
-      const res = await fetch(`/api/users/update`, {
+      const res = await Fetch(`/users/${userId}`, {
         method: "PUT",
-        body: JSON.stringify({ id: userId, ...userData }),
+        body: JSON.stringify(userData),
       });
       const json = await res.json();
       if (!res.ok) {
         throw new Error(json);
       }
+      form.reset();
       reset();
-      router.refresh();
+      // Small delay to prevent modal flicker
+      setTimeout(() => {
+        router.refresh();
+      }, 100);
     } catch (error) {
       toast.error("Failed to update user. Please try again.");
       console.log(error);
@@ -192,6 +201,7 @@ export default function UserModal() {
                   <FormControl>
                     <Select
                       {...form.register("role")}
+                      value={form.watch("role") || ""}
                       onValueChange={(value) => {
                         if (!value) form.resetField("role");
                         form.setValue(
