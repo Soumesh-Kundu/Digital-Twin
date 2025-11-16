@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse, ProxyConfig } from "next/server";
 import { getServerUser } from "./lib/server/auth";
 import { Role } from "@prisma/client";
+import { getToken } from "next-auth/jwt";
+import {jwtDecrypt} from "jose"
 
 export async function proxy(req: NextRequest) {
+  
   const session = await getServerUser();
   const pathname = req.nextUrl.pathname;
 
@@ -25,8 +28,6 @@ export async function proxy(req: NextRequest) {
   // User is authenticated - determine their allowed routes
   let allowedRoutes: string[] = [];
   let defaultRoute: string = '/login';
-  console.log("Middleware - User Role:", session.user.role, session.user);
-
   switch (session.user.role) {
     case Role.ADMIN:
       allowedRoutes = ['/admin'];

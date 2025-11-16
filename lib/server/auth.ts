@@ -3,6 +3,7 @@ import CredentialProvider from "next-auth/providers/credentials";
 import { db } from "./db";
 import { compare } from "bcrypt";
 import { Role } from "@prisma/client";
+import { jwtDecrypt,CompactEncrypt } from "jose";
 
 declare module "next-auth" {
   interface Session {
@@ -19,10 +20,27 @@ export const authOptions: NextAuthOptions = {
   pages: {
     signIn: "/login",
   },
-  secret: process.env.NEXT_AUTH_SECRET!,
+  secret: process.env.NEXTAUTH_SECRET!,
   session: {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60,
+  },
+  jwt:{
+    decode: async ({secret,token})=>{
+      const secretStr = new TextEncoder().encode(secret as string);
+      const hash=await crypto.subtle.digest("SHA-256",secretStr);
+      const {payload}=await jwtDecrypt(token as string, Buffer.from(hash));
+      return payload as Record<string,unknown>;
+    },
+    encode: async ({secret,token})=>{
+      const textEncoder=new TextEncoder();
+      const secretStr = textEncoder.encode(secret as string);
+      const hash=await crypto.subtle.digest("SHA-256",secretStr);
+      const jwe = await new CompactEncrypt(textEncoder.encode(JSON.stringify(token)))
+        .setProtectedHeader({ alg: 'dir', enc: 'A256GCM' })
+        .encrypt(Buffer.from(hash));
+      return jwe;
+    }
   },
   providers: [
     CredentialProvider({

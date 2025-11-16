@@ -1,6 +1,6 @@
 "use client";
 import { Role, User } from "@prisma/client";
-import { Usable, use } from "react";
+import { Usable, use, useEffect } from "react";
 import { Button } from "../ui/button";
 import { Group, Pencil, Plus, Settings, Trash } from "lucide-react";
 import { useUserModalStore } from "@/stores/userModal";
@@ -8,6 +8,8 @@ import UserModal from "../Modals/UserModal";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import ConfirmationBox from "../Modals/ConfirmationBox";
+import { useSession } from "next-auth/react";
+import { Fetch } from "@/lib/customFetch/Fetch";
 type ListUser = Omit<User, "password" | "createdAt" | "updatedAt">;
 type Props = {
   users: Promise<ListUser[]>;
@@ -19,9 +21,8 @@ export default function AdminUserList({ users }: Props) {
 
   async function deleteUser(userId: string) {
     try {
-      const res=await fetch(`/api/users/delete`, {
+      const res=await Fetch(`/users/${userId}`, {
         method: "DELETE",
-        body: JSON.stringify({id:userId})
       });
       const data=await res.json();
       if(!res.ok){
