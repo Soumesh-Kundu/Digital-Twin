@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 
 export default function Navbar({ userName }: { userName: string }) {
   return (
-    <nav className="flex items-center justify-between py-4 px-5 shadow-md">
+    <nav className="flex items-center justify-between py-4 px-5 shadow-md border-b">
       <h1 className="text-xl font-bold">Digital Twin</h1>
       <ProfileDropDown>
         <div className="flex items-center gap-2 border-2 shadow-sm rounded-full px-3 py-1 cursor-pointer">

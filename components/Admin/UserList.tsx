@@ -86,10 +86,6 @@ export default function AdminUserList({ users }: Props) {
               <p className="text-sm text-gray-500">{user.email}</p>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline">
-                <Settings /> 
-                Manage Assignee
-              </Button>
               <Button variant="outline" 
               onClick={()=>{openEditModal({
                 id: user.id,

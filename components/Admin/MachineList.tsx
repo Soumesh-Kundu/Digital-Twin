@@ -10,9 +10,10 @@ import ConfirmationBox from "../Modals/ConfirmationBox";
 import { useMachineModalStore } from "@/stores/machineModal";
 import MachineModal from "../Modals/MachineModal";
 import { Fetch } from "@/lib/customFetch/Fetch";
+import MachineAsignee from "../Modals/MachineAsignee";
 type ListUser = Omit<User, "password" | "createdAt" | "updatedAt">;
 type Props = {
-  machines: Promise<Machines[]>;
+  machines: Promise<(Machines & { _count: { assignments: number } })[]>;
 };
 export default function AdminMachineList({ machines }: Props) {
   const { openAddModal, openEditModal } = useMachineModalStore((state) => state);
@@ -96,10 +97,12 @@ export default function AdminMachineList({ machines }: Props) {
               <p className="text-sm text-gray-500">{machine.model_name}</p>
             </div>
             <div className="flex items-center gap-2">
+              <MachineAsignee machineId={machine.id}>
               <Button variant="outline">
                 <Settings /> 
-                Manage Assignee
+                Manage Assignee ({machine._count.assignments})
               </Button>
+              </MachineAsignee>
               <Button variant="outline" 
               onClick={()=>{openEditModal({
                 id: machine.id,
