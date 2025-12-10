@@ -1,8 +1,5 @@
-import PageUnderConstruction from '@/components/PageUnderConstruction'
-import React from 'react'
+import Alerts from "@/components/Mainteinance/Alerts";
 
-export default function page() {
-  return (
-    <PageUnderConstruction  pageName="Alerts" />
-  )
+export default function AlertsPage() {
+  return <Alerts />;
 }

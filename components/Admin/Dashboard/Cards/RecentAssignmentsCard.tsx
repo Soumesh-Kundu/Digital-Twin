@@ -63,7 +63,7 @@ export default function RecentAssignmentsCard({ assignments }: Props) {
         <h3 className="text-lg font-semibold text-gray-800">Recent Assignments</h3>
       </div>
 
-      <div className="flex-1 rounded-lg border overflow-hidden overflow-y-auto">
+      <div className="flex-1 rounded-lg border overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow className="bg-gray-50">

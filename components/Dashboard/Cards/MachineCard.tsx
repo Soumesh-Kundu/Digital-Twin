@@ -30,7 +30,7 @@ import {
   AlertCircle,
   TrendingDown,
 } from "lucide-react";
-import { io, Socket } from "socket.io-client";
+import { useSocketStore } from "@/stores/socket";
 
 // Phase types
 type ParamPhase = 'NORMAL' | 'APPROACHING' | 'IN_BAND' | 'COOLDOWN';
@@ -100,7 +100,7 @@ const typeSpecificParams: Record<
   HYDRAULIC: [
     {
       key: "pressureMax",
-      label: "Press",
+      label: "Pressure",
       icon: Gauge,
       unit: "bar",
       color: "#10b981",
@@ -137,7 +137,7 @@ const typeSpecificParams: Record<
   FURNACE: [
     {
       key: "pressureMax",
-      label: "Press",
+      label: "Pressure",
       icon: Gauge,
       unit: "bar",
       color: "#10b981",
@@ -247,7 +247,7 @@ export default function MachineCard({ machine }: Props) {
   const [showTopArrow, setShowTopArrow] = useState(false);
   const [showBottomArrow, setShowBottomArrow] = useState(false);
   const tabsListRef = useRef<HTMLDivElement>(null);
-  const socketRef = useRef<Socket | null>(null);
+  const { socket } = useSocketStore();
 
   const activeParam = allParams.find((p) => p.key === activeTab);
   const ActiveIcon = activeParam?.icon || Thermometer;
@@ -314,46 +314,24 @@ export default function MachineCard({ machine }: Props) {
     };
   }, []);
 
-  // Socket connection for real-time data
+  // Listen for namespaced machine_update and machine_status events from shared socket
   useEffect(() => {
-    // Connect to socket server
-    const socket = io(process.env.NEXT_PUBLIC_SERVER_URL as string, {
-      transports: ["websocket", "polling"],
-      withCredentials: false,
-    });
-    socketRef.current = socket;
+    if (!socket) return;
 
-    // Connection event handlers
-    socket.on("connect", () => {
-      console.log("Socket connected:", socket.id);
-      // Subscribe to machine updates channel after connection
-      socket.emit("subscribe_machine", { machineId: machine.id });
-    });
+    // Namespaced event names for this specific machine
+    const updateEvent = `machine_update_${machine.id}`;
+    const statusEvent = `machine_status_${machine.id}`;
 
-    socket.on("connect_error", (error) => {
-      console.error("Socket connection error:", error.message);
-    });
-
-    socket.on("disconnect", (reason) => {
-      console.log("Socket disconnected:", reason);
-    });
-
-    socket.on('machine_status_changed', (data: {machineId:string, status:MachinesStatus, streaming:boolean}) => {
-      console.log('Received machine_status_changed event:', data);
-      if(data.machineId !== machine.id) return;
-      console.log('Machine status changed event received:', data);
+    const handleStatusChanged = (data: { machineId: string; status: MachinesStatus; streaming: boolean }) => {
+      console.log("Machine status changed event received:", data);
       setMachineStatus(data.status);
-    });
+    };
 
-    // Listen for machine_update events
-    socket.on("machine_update", (data: MachineUpdateMessage) => {
-      // Only process updates for this machine
-      if(machine.name==='Machine 1'){
-        console.log("Received machine update:", data.machineId,data);
-      }
-      if (data.machineId !== machine.id) return;
-
+    const handleMachineUpdate = (data: MachineUpdateMessage) => {
       // Update phases for each parameter
+      if(machine.name==="test"){
+        console.log("Machine update event received:", data);
+      }
       setParamPhases((prevPhases) => {
         const newPhases = { ...prevPhases };
         Object.entries(data.metrics).forEach(([key, metric]) => {
@@ -373,26 +351,29 @@ export default function MachineCard({ machine }: Props) {
             // Shift all data points left by 1 and recalculate countdown labels
             const shiftedData = newData[key].slice(1).map((point, i) => ({
               ...point,
-              time: `${i - MAX_DATA_POINTS }s`,
+              time: `${i - MAX_DATA_POINTS}s`,
             }));
             newData[key] = [
               ...shiftedData,
-              { time: "0s", value:value.value },
+              { time: "0s", value: value.value },
             ];
           }
         });
 
         return newData;
       });
-    });
-
-    // Cleanup on unmount
-    return () => {
-      socket.emit("unsubscribe_machine", { machineId: machine.id });
-      socket.disconnect();
-      socketRef.current = null;
     };
-  }, [machine.id]);
+
+    // Listen to namespaced events (only receives events for this machine)
+    socket.on(statusEvent, handleStatusChanged);
+    socket.on(updateEvent, handleMachineUpdate);
+
+    // Cleanup listeners on unmount (but don't disconnect socket)
+    return () => {
+      socket.off(statusEvent, handleStatusChanged);
+      socket.off(updateEvent, handleMachineUpdate);
+    };
+  }, [socket, machine.id]);
 
   // Get threshold value for the active parameter
   const getThresholdValue = (key: string) => {
@@ -410,6 +391,21 @@ export default function MachineCard({ machine }: Props) {
       if (data[i].value !== null) return data[i].value;
     }
     return null;
+  };
+
+  // Get the display phase - COOLDOWN only shows when value is below threshold
+  const getDisplayPhase = (key: string, phase: ParamPhase): ParamPhase => {
+    if (phase !== 'COOLDOWN') return phase;
+    
+    const currentValue = getCurrentValue(key);
+    const threshold = getThresholdValue(key);
+    
+    // If value is still at or above threshold, show as IN_BAND (still critical)
+    if (currentValue !== null && currentValue >= threshold * 0.95) {
+      return 'IN_BAND';
+    }
+    // Only show COOLDOWN when value is actually below threshold band
+    return 'COOLDOWN';
   };
 
   // Get color based on phase
@@ -510,7 +506,8 @@ export default function MachineCard({ machine }: Props) {
               <TabsList className="flex flex-col w-full h-auto rounded-none bg-transparent px-1 gap-0.5">
                 {allParams.map((param) => {
                   const Icon = param.icon;
-                  const phase = paramPhases[param.key] || 'NORMAL';
+                  const rawPhase = paramPhases[param.key] || 'NORMAL';
+                  const phase = getDisplayPhase(param.key, rawPhase);
                   const phaseColor = getPhaseColor(phase, param.color);
                   
                   return (
@@ -561,7 +558,8 @@ export default function MachineCard({ machine }: Props) {
           {/* Right side - Graph Content */}
           <div className="flex-1 min-w-0 p-3 -ml-7">
             {allParams.map((param) => {
-              const phase = paramPhases[param.key] || 'NORMAL';
+              const rawPhase = paramPhases[param.key] || 'NORMAL';
+              const phase = getDisplayPhase(param.key, rawPhase);
               const phaseColor = getPhaseColor(phase, param.color);
               const gradientConfig = getPhaseGradient(phase, param.color);
               

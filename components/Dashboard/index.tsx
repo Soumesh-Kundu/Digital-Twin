@@ -2,8 +2,8 @@
 
 import { MACHINE_TYPE, MachinesStatus } from "@prisma/client";
 import { use, useMemo } from "react";
-import KPICard from "@/components/Dashboard/Cards/KPICard";
-import MachineCard from "@/components/Dashboard/Cards/MachineCard";
+import KPICard from "./Cards/KPICard";
+import MachineCard from "./Cards/MachineCard";
 
 type Machine = {
   id: string;

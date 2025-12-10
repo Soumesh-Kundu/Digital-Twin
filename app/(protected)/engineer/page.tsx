@@ -1,4 +1,4 @@
-import Dashboard from "@/components/Engineer/Dashboard";
+import Dashboard from "@/components/Dashboard";
 import { serverFetch } from "@/lib/customFetch/serverFetch";
 
 async function getMachines(){

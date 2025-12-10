@@ -1,6 +1,7 @@
 "use client";
 
 import { NumberTicker } from "@/components/ui/number-ticker";
+import { useAlertStore } from "@/stores/alerts";
 import {
   AlertTriangle,
   Activity,
@@ -18,12 +19,12 @@ type Props = {
 };
 
 export default function KPICard({
-  alertsCount,
   activeCount,
   idleCount,
   maintenanceCount,
   totalMachines,
 }: Props) {
+  const {pendingCount}=useAlertStore((state)=>state);
   return (
     <div className="col-span-3 bg-white rounded-xl shadow-md border p-4">
       <div className="flex items-center gap-2 mb-3">
@@ -82,7 +83,7 @@ export default function KPICard({
             <AlertTriangle className="h-4 w-4 text-white" />
           </div>
           <span className="text-2xl font-bold text-red-600">
-            <NumberTicker value={alertsCount} delay={0.4} />
+            <NumberTicker value={pendingCount} delay={0.4} />
           </span>
           <span className="text-xs text-gray-600 mt-0.5">Alerts</span>
         </div>

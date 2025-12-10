@@ -39,7 +39,7 @@ export default function UnassignedMachinesCard({ machines }: Props) {
       </div>
 
       {machines.length > 0 ? (
-        <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+        <div className="flex-1 overflow-y-auto space-y-3 pr-1 thin-scrollbar">
           {machines.map((machine) => (
             <div
               key={machine.id}
