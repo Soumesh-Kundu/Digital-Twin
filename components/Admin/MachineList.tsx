@@ -23,7 +23,6 @@ export default function AdminMachineList({ machines }: Props) {
   async function deleteMachine(machineId: string) {
     try {
       const res=await Fetch(`/machines/${machineId}`, {
-      const res=await Fetch(`/machines/${machineId}`, {
         method: "DELETE",
       });
       const data=await res.json();
