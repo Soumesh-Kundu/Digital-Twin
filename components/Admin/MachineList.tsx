@@ -93,16 +93,6 @@ export default function AdminMachineList({ machines }: Props) {
                 }`}>
                   {machine.status.charAt(0) + machine.status.slice(1).toLowerCase()}
                 </span>
-
-                <span className={`ml-2 px-3 py-1 text-sm font-medium rounded-full ${
-                  machine.status === "ACTIVE"
-                    ? "bg-green-100 text-green-800"
-                    : machine.status === "IDLE"
-                    ? "bg-yellow-100 text-yellow-800"
-                    : "bg-red-100 text-red-800"
-                }`}>
-                  {machine.status.charAt(0) + machine.status.slice(1).toLowerCase()}
-                </span>
               </div>
               <p className="text-sm text-gray-500">{machine.model_name}</p>
             </div>
