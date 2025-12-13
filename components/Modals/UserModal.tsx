@@ -75,7 +75,6 @@ export default function UserModal() {
   });
 
   useEffect(() => {
-    console.log("Modal Type Changed:", modalType);
     setIsPasswordLock(modalType === "edit");
     form.reset({
       name: modalType === "edit" ? useUserModalStore.getState().data.name : "",

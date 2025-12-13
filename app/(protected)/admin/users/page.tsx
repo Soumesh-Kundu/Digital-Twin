@@ -12,7 +12,6 @@ async function getUsers() {
       throw new Error("Failed to fetch users");
     }
     const users = await res.json();
-    console.log("Fetched users:", users);
     return users;
   } catch (error) {
     console.log("Error fetching users:", error);

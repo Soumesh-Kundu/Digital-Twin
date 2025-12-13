@@ -52,7 +52,6 @@ export default function LoginForm() {
       password: values.password,
       redirect: false,
     });
-    console.log("SignIn Data:", signInData);
     if (signInData?.ok) {
       router.push("/");
     }

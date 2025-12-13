@@ -10,7 +10,6 @@ async function getAlerts() {
       cache: "no-store",
     });
     const alerts = await res.json();
-    console.log("Fetched alerts:", alerts);
     return alerts;
   } catch (error) {
     console.log("Error fetching alerts:", error);

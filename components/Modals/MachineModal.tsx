@@ -122,7 +122,6 @@ export default function MachineModal() {
   });
 
   useEffect(() => {
-    console.log("Modal Type Changed:", modalType);
     setIsPasswordLock(modalType === "edit");
     const machineData = useMachineModalStore.getState().data;
     
@@ -185,7 +184,6 @@ export default function MachineModal() {
         }, {} as Record<string, string>)
       }
 
-      console.log("Creating machine with data:", data,machineData['rpmMax']);
       const res = await Fetch(`/machines`, {
         method: "POST",
         body: JSON.stringify(data),

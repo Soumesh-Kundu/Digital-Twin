@@ -83,7 +83,6 @@ export default function AlertWrapper({
     if (!socket) return;
 
     const handleAlert = (payload: SocketAlertPayload) => {
-      console.log("Received alert:", payload);
 
       const newAlert: Alert = {
         id: payload.id,

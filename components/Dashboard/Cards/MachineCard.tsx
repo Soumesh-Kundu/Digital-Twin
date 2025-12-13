@@ -323,15 +323,11 @@ export default function MachineCard({ machine }: Props) {
     const statusEvent = `machine_status_${machine.id}`;
 
     const handleStatusChanged = (data: { machineId: string; status: MachinesStatus; streaming: boolean }) => {
-      console.log("Machine status changed event received:", data);
       setMachineStatus(data.status);
     };
 
     const handleMachineUpdate = (data: MachineUpdateMessage) => {
       // Update phases for each parameter
-      if(machine.name==="test"){
-        console.log("Machine update event received:", data);
-      }
       setParamPhases((prevPhases) => {
         const newPhases = { ...prevPhases };
         Object.entries(data.metrics).forEach(([key, metric]) => {
